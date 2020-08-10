@@ -1,5 +1,5 @@
 ---
-title: "README"
+title: "Lab 1"
 author: "Alexander Palencia 20160391"
 date: "8/9/2020"
 output: github_document
@@ -9,12 +9,10 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# LAB 1
-
 ## Problema 1
+El archivo nuevo genrado es MyData.csv
 
 ```{r}
-library(tidyverse)
 library(readxl)
 
 
