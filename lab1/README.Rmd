@@ -9,7 +9,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# LAB 1
 
 ```{r cars}
 summary(cars)
