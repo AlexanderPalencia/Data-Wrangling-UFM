@@ -2,9 +2,7 @@
 title: "README"
 author: "Alexander Palencia 20160391"
 date: "8/9/2020"
-output:
-  html_document:
-    df_print: paged
+output: rmarkdown::github_document
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
