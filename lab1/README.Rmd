@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # LAB 1
 
+## Problema 1
+
 ```{r cars}
 summary(cars)
 ```
