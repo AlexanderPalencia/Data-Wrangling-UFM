@@ -28,6 +28,6 @@ list_vector <- list(v1,v2,v3)
 lapply(list_vector, calculate_mode)
 
 
-data <- read.delim("./Data/INE_PARQUE_VEHICULAR_080219.txt", header=TRUE, sep="|")
+data <- read.delim("./Data1/INE_PARQUE_VEHICULAR_080219.txt", header=TRUE, sep="|")
 head(data)
 
