@@ -12,15 +12,7 @@ cursorObj = conn.cursor()
 
 
 ```python
-# cursorObj.execute("SELECT name FROM sqlite_master WHERE type='table'")
-# rows = cursorObj.fetchall()
-
-# for row in rows:
-#     print(row)
-    
-    
 tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table'",conn)
-
 print(tables)
 ```
 
@@ -60,14 +52,11 @@ print(cursorObj.execute("SELECT sql FROM sqlite_master WHERE name='income';").fe
     [('CREATE TABLE income (\n        ssn integer PRIMARY KEY,\n        annual_income integer\n    )',)]
     
 
-#### Select tables for examples
+#### Select table for example
 
 
 ```python
 tables = pd.read_sql("SELECT * FROM person LIMIT 1",conn)
-print(tables)
-
-tables = pd.read_sql("SELECT * FROM drivers_license LIMIT 1",conn)
 print(tables)
 ```
 
