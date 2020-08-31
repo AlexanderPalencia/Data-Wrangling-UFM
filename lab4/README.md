@@ -25,6 +25,12 @@ data <- read.csv(file = "tabla_completa.csv", header = TRUE, encoding = "latin1"
 ```
 
 ``` r
+print('Resumen de la data')
+```
+
+    ## [1] "Resumen de la data"
+
+``` r
 glimpse(data)
 ```
 
@@ -43,6 +49,12 @@ glimpse(data)
     ## $ ANIO      <int> 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2019, 201...
 
 ``` r
+print('Count distinct')
+```
+
+    ## [1] "Count distinct"
+
+``` r
 data %>% summarise_all(n_distinct)
 ```
 
@@ -55,6 +67,12 @@ sprintf("Ingreso total del año %f", ingresoTotal)
 ```
 
     ## [1] "Ingreso total del año 598848.250000"
+
+``` r
+print('Clientes de Distribuidora del Sur, S.A.')
+```
+
+    ## [1] "Clientes de Distribuidora del Sur, S.A."
 
 ``` r
 unique(data[["CLIENTE"]])
@@ -80,6 +98,12 @@ unique(data[["CLIENTE"]])
     ## [18] "HOSPITAL LAS AMERICAS"
 
 ``` r
+print('Tipo de unidades Distribuidora del Sur, S.A.')
+```
+
+    ## [1] "Tipo de unidades Distribuidora del Sur, S.A."
+
+``` r
 unique(data[["UNIDAD"]])
 ```
 
@@ -97,6 +121,12 @@ ubicacionB <- filter(data, UBICACION == 76001)
 ```
 
 ``` r
+print('Pilotos de Distribuidora del Sur, S.A.')
+```
+
+    ## [1] "Pilotos de Distribuidora del Sur, S.A."
+
+``` r
 unique(data[["PILOTO"]])
 ```
 
@@ -105,6 +135,12 @@ unique(data[["PILOTO"]])
     ## [5] "Juan Francisco Portillo Gomez" "Luis Jaime Urbano"            
     ## [7] "Ismael Rodero Monteagudo"      "Felipe Villatoro"             
     ## [9] "Hector Giron"
+
+``` r
+print('Clientes faltas')
+```
+
+    ## [1] "Clientes faltas"
 
 ``` r
 Clientes <- as.character(unique(data[["CLIENTE"]]))
@@ -133,6 +169,12 @@ sprintf("Cantidad de devoluciones %f", sum(Devolucion$Q))
     ## [1] "Cantidad de devoluciones 33070.500000"
 
 ``` r
+print('Cantidad Maxima y minima de un camion Pequeño')
+```
+
+    ## [1] "Cantidad Maxima y minima de un camion Pequeño"
+
+``` r
 s <- filter(data, UNIDAD == "Camion Pequeño")
 max(s$CANTIDAD)
 ```
@@ -146,6 +188,12 @@ min(s$CANTIDAD)
     ## [1] 502
 
 ``` r
+print('Cantidad Maxima y minima de un camion Grande')
+```
+
+    ## [1] "Cantidad Maxima y minima de un camion Grande"
+
+``` r
 g <- filter(data, UNIDAD == "Camion Grande")
 max(g$CANTIDAD)
 ```
@@ -157,6 +205,25 @@ min(g$CANTIDAD)
 ```
 
     ## [1] 1002
+
+``` r
+print('Cantidad Maxima y minima de un panel')
+```
+
+    ## [1] "Cantidad Maxima y minima de un panel"
+
+``` r
+g <- filter(data, UNIDAD == "Panel")
+max(g$CANTIDAD)
+```
+
+    ## [1] 500
+
+``` r
+min(g$CANTIDAD)
+```
+
+    ## [1] 200
 
 ## ¿Debemos invertir en la contratación de más personal?
 
@@ -322,6 +389,54 @@ sprintf('Cantidad de Producto faltante en camiones grandes %f', sum(faltantesPeq
 ```
 
     ## [1] "Cantidad de Producto faltante en camiones grandes 8258.500000"
+
+## Las tarifas actuales ¿son aceptables por el cliente?
+
+  - Como podemos ver por la cantidad de viajes por rango de precio de
+    0-100, se mantiene en promedio de 460 en todo los rangos, por lo
+    cual se concluye que todas las tarifas son aceptables ya que
+    mantienen un flujo casi constante.
+
+<!-- end list -->
+
+``` r
+e1 <- filter(data, Q > 0, Q <= 100 )
+nrow(e1)
+```
+
+    ## [1] 263
+
+``` r
+e2 <- filter(data, Q > 100, Q <= 200 )
+nrow(e2)
+```
+
+    ## [1] 459
+
+``` r
+e3 <- filter(data, Q > 200, Q <= 300 )
+nrow(e3)
+```
+
+    ## [1] 491
+
+``` r
+e4 <- filter(data, Q > 300, Q <= 400 )
+nrow(e4)
+```
+
+    ## [1] 475
+
+``` r
+e5 <- filter(data, Q > 400, Q <= 500 )
+nrow(e5)
+```
+
+    ## [1] 492
+
+``` r
+e6 <- filter(data , CREDITO == 30)
+```
 
 ## ¿Nos están robando los pilotos?
 

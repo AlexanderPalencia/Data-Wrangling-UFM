@@ -173,11 +173,6 @@ nrow(e4)
 e5 <- filter(data, Q > 400, Q <= 500 )
 nrow(e5)
 e6 <- filter(data , CREDITO == 30)
-Devolucion <- Clientes[7]
-DfDevolucion <- filter(data, CLIENTE == Devolucion)
-nrow(DfDevolucion)
-summary(DfDevolucion)
-## Se llego a devolver hasta 1985.0 en cantidad un precio de 496.2 Luis Jaime Urbano Piloto con mas entrega 22 en total.
 ```
 
 ## ¿Nos están robando los pilotos?
