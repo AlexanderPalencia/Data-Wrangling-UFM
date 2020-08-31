@@ -11,11 +11,233 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-plot(cars)
+require(dplyr)
+data <- read.csv(file = "tabla_completa.csv", header = TRUE, encoding = "latin1")
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+glimpse(data)
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+```{r}
+data %>% summarise_all(n_distinct)
+```
+
+```{r}
+ingresoTotal <- sum(data$Q)
+sprintf("Ingreso total del año %f", ingresoTotal)
+```
+
+```{r}
+unique(data[["CLIENTE"]])
+```
+
+```{r}
+unique(data[["UNIDAD"]])
+```
+
+```{r}
+print(unique(data[["UBICACION"]]))
+ubicacionA <- filter(data, UBICACION == 76002)
+ubicacionB <- filter(data, UBICACION == 76001)
+
+```
+
+```{r}
+unique(data[["PILOTO"]])
+```
+
+```{r}
+Clientes <- as.character(unique(data[["CLIENTE"]]))
+Faltantes <- Clientes[c(2,5,6,10,11,16)]
+Faltantes
+
+```
+
+```{r}
+Devolucion <- filter(data, CLIENTE == Clientes[7])
+sprintf("Cantidad de devoluciones %i", nrow(Devolucion))
+sprintf("Cantidad de devoluciones %f", sum(Devolucion$Q))
+```
+
+```{r}
+s <- filter(data, UNIDAD == "Camion Pequeño")
+max(s$CANTIDAD)
+min(s$CANTIDAD)
+```
+
+
+```{r}
+g <- filter(data, UNIDAD == "Camion Grande")
+max(g$CANTIDAD)
+min(g$CANTIDAD)
+```
+
+
+## ¿Debemos invertir en la contratación de más personal? 
+* No se deberia contratar mas personal, porque la carga laboral reflejada es de un viaje al dia, la siguiente función crea un dataframe con la cantidad de viajes por mes, seguido de mostrarnos los datos de Viajes Totales, Viajes promedio por mes, Viajes repartidos por los 9 pilotos y viajes diarios.
+
+```{r}
+CreateDF <- function(){
+  dataFrame <- data.frame(
+    Mes = integer(),
+    Cantidad_Viajes = integer(),
+    stringsAsFactors = FALSE
+  )
+  for(i in 1:11){
+    ViajesMes <- filter(data, MES == i)
+    vec <- c(i,nrow(ViajesMes))
+    dataFrame <- rbind(dataFrame, vec)
+  }
+  names(dataFrame)[1] <- "Mes"
+  names(dataFrame)[2] <- "Cantidad_Viajes"
+  return(dataFrame)
+}
+df <- CreateDF()
+TotalViajes <- sum(df$Cantidad_Viajes)
+sprintf("Viajes totales en el año %i", TotalViajes)
+PromedioViajesMes <- mean(df$Cantidad_Viajes)
+sprintf("Viajes Promedio en el mes %f", PromedioViajesMes)
+ViajesPorPilotoMes <- df$Cantidad_Viajes/9
+"Viajes Promedio por piloto en los meses"
+ViajesPorPilotoMes
+ViajesDiarioPilot <- ViajesPorPilotoMes/22
+sprintf("Viajes Promedio por piloto diarios ")
+ViajesDiarioPilot
+```
+
+
+
+## ¿Debemos invertir en la compra de más vehículos de distribución? ¿Cuántos y de que tipo?
+* Se deberia inveertir en camiones grandes porque como podemos ver son los mas rentables y los que aportan mas beneficio a la empresa, ademas podemos notar como las 3 unides tiene viajes donde le "Falta" entregar producto el mas propenso a esto es en los camiones grandes, si se aumenta la cantidad a 7 reduciria los viajes "Faltantes", otra solucion seria comprar camiones mas grandes.
+
+```{r}
+CamionPeque <- filter(data, UNIDAD == "Camion Pequeño")
+sprintf('Ingresos Camiones Pequeños %f', sum(CamionPeque$Q))
+Panel <- filter(data, UNIDAD == "Panel")
+sprintf('Ingresos Panel %f', sum(Panel$Q))
+CamionGrande <- filter(data, UNIDAD == "Camion Grande")
+sprintf('Ingresos Camiones Grandes %f', sum(CamionGrande$Q))
+
+for(i in 1:length(Faltantes)){
+  faltantePanel <- filter(data, CLIENTE == Faltantes[i], UNIDAD == "Panel" )
+  
+}
+for(i in 1:length(Faltantes)){
+  faltantesPeque <- filter(data, CLIENTE == Faltantes[i], UNIDAD == "Camion Pequeño" )
+}
+for(i in 1:length(Faltantes)){
+  faltantesGrande <- filter(data, CLIENTE == Faltantes[i], UNIDAD == "Camion Grande" )
+}
+
+sprintf('Cantidad de viajes faltantes con paneles %i', nrow(faltantePanel))
+sprintf('Cantidad de viajes faltantes con camion pequeño %i', nrow(faltantesPeque))
+sprintf('Cantidad de viajes faltantes con camiones grande %i', nrow(faltantePanel))
+
+sprintf('Cantidad de viajes faltantes con panel %f', sum(faltantePanel$Q))
+sprintf('Cantidad de viajes faltantes con camiones pequeño %f', sum(faltantesPeque$Q))
+sprintf('Cantidad de viajes faltantes con camiones grande %f', sum(faltantesGrande$Q))
+
+
+sprintf('Cantidad de Producto en camiones paneles %f', sum(faltantePanel$CANTIDAD))
+sprintf('Cantidad de Producto faltante en camiones pequeño %f', sum(faltantesPeque$Q))
+sprintf('Cantidad de Producto faltante en camiones grandes %f', sum(faltantesPeque$Q))
+
+
+```
+## ¿Nos están robando los pilotos?
+* No, no estan robando, esto se comprobo sacando el precio por Unidad buscando si en algun caso este variaba se comprobo que no vario.
+
+```{r}
+PrecioPorUnidad <- data$Q/data$CANTIDAD
+# Ver si hay alguno que no cuadre
+robo <- unique(data$Q/data$CANTIDAD)
+"El unico valor es "
+robo
+```
+
+##¿Qué estrategias debo seguir?
+* Comprar y cotizar camiones mas grandes para reducir la cantidad de viajes faltantes
+* Distribuir acorde a la cantidad de productos que se distrubuye.
+* Ya que la cantidad de viajes por piloto en un dia son alrededor de 1 o 2, se podria considerar reducir a los pilitos de tal manera que tenga de 4 a 5 viajes diarios, o reubicarlos en otra area donde sean más productivos.
+* Investigar la devolucion del cliente Gaño negro ya que se reportan 119 viajes devueltos con un total de 33070.50
+
+
+
+## 80-20 de clientes y cuáles de ellos son los más importantes
+* Nuestro mejor cliente
+* TAQUERIA EL CHINITO con ingreso de 69135 representa el 11.54% de nuestro ingresos anuales
+* UBIQUO LABS con ingresos de 64250 representa el 10.7%
+* EL PINCHE OBELISCO con ingresos 71079 representa el 11.87%
+```{r}
+
+for(i in 1:length(Clientes)){
+  t <- filter(data, CLIENTE == Clientes[i])
+  vector <- c(Clientes[i],sum(t$Q))
+  print(vector)
+  
+  IngresoTotal <- sum(data$Q)
+  obelisto <- 35555 + 35524
+  chinito <- 30861.5 + 38274
+  ubico <- 3212 + 32125.75
+  PorcentajeObelisco <- (38274*100)/IngresoTotal
+  Porcentajechinito <- (37889.25*100)/IngresoTotal
+  Porcentajeubico <- (37129*100)/IngresoTotal
+  
+}
+
+```
+
+## Mejores pilotos
+* Mejor piloto Fernando Mariano Berrio con 267 anuales
+* 2do mejor piloto Pedro Alvarez Parejo 253 anuales 
+* 3ro mejor piloto Hector Aragones Frutos 248 anuales
+
+
+## Transportes más efectivos
+* Camion Grande representa el 76.05 de nuestras entregas
+* Camion Camion Pequeño el 18.83 de nuestras entregas
+* Camion Panel el 5.10 de nuestras entregas
+
+```{r}
+DFPilotos <- function(){
+  Piloto <- as.character(unique(data[["PILOTO"]]))
+  df <- data.frame(
+    Piloto = character(),
+    Viajes_Anuales = character(),
+    stringsAsFactors=FALSE
+  )
+  for(i in 1:length(Piloto)){
+    nombre <- Piloto[i];
+    CViajesAnuales <- as.character(nrow(filter(data, PILOTO == Piloto[i])))
+    vector <- c(nombre,CViajesAnuales)
+    print(vector)
+  }
+}
+"Pilotos"
+DFPilotos()
+t <- filter(data, UNIDAD == "Panel" )
+"Panel"
+sum(t$Q)
+Por <- (sum(t$Q)*100)/IngresoTotal
+a <- filter(data, UNIDAD == "Camion Pequeño" )
+"Camion Pequeño"
+sum(a$Q)
+Por1 <- (sum(a$Q)*100)/IngresoTotal
+s <- filter(data, UNIDAD == "Camion Grande" )
+"Camion Grande"
+sum(s$Q)
+Por2 <- (sum(s$Q)*100)/IngresoTotal
+
+```
+
+
+
+
+
+
+
+
