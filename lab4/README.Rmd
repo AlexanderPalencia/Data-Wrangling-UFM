@@ -17,25 +17,26 @@ data <- read.csv(file = "tabla_completa.csv", header = TRUE, encoding = "latin1"
 
 
 ```{r}
+print('Resumen de la data')
 glimpse(data)
 ```
 
-
-
 ```{r}
+print('Count distinct')
 data %>% summarise_all(n_distinct)
 ```
-
 ```{r}
 ingresoTotal <- sum(data$Q)
 sprintf("Ingreso total del año %f", ingresoTotal)
 ```
 
 ```{r}
+print('Clientes de Distribuidora del Sur, S.A.')
 unique(data[["CLIENTE"]])
 ```
 
 ```{r}
+print('Tipo de unidades Distribuidora del Sur, S.A.')
 unique(data[["UNIDAD"]])
 ```
 
@@ -47,14 +48,15 @@ ubicacionB <- filter(data, UBICACION == 76001)
 ```
 
 ```{r}
+print('Pilotos de Distribuidora del Sur, S.A.')
 unique(data[["PILOTO"]])
 ```
 
 ```{r}
+print('Clientes faltas')
 Clientes <- as.character(unique(data[["CLIENTE"]]))
 Faltantes <- Clientes[c(2,5,6,10,11,16)]
 Faltantes
-
 ```
 
 ```{r}
@@ -64,6 +66,7 @@ sprintf("Cantidad de devoluciones %f", sum(Devolucion$Q))
 ```
 
 ```{r}
+print('Cantidad Maxima y minima de un camion Pequeño')
 s <- filter(data, UNIDAD == "Camion Pequeño")
 max(s$CANTIDAD)
 min(s$CANTIDAD)
@@ -71,11 +74,18 @@ min(s$CANTIDAD)
 
 
 ```{r}
+print('Cantidad Maxima y minima de un camion Grande')
 g <- filter(data, UNIDAD == "Camion Grande")
 max(g$CANTIDAD)
 min(g$CANTIDAD)
 ```
 
+```{r}
+print('Cantidad Maxima y minima de un panel')
+g <- filter(data, UNIDAD == "Panel")
+max(g$CANTIDAD)
+min(g$CANTIDAD)
+```
 
 ## ¿Debemos invertir en la contratación de más personal? 
 * No se deberia contratar mas personal, porque la carga laboral reflejada es de un viaje al dia, la siguiente función crea un dataframe con la cantidad de viajes por mes, seguido de mostrarnos los datos de Viajes Totales, Viajes promedio por mes, Viajes repartidos por los 9 pilotos y viajes diarios.
@@ -146,8 +156,30 @@ sprintf('Cantidad de Producto en camiones paneles %f', sum(faltantePanel$CANTIDA
 sprintf('Cantidad de Producto faltante en camiones pequeño %f', sum(faltantesPeque$Q))
 sprintf('Cantidad de Producto faltante en camiones grandes %f', sum(faltantesPeque$Q))
 
-
 ```
+
+
+## Las tarifas actuales ¿son aceptables por el cliente?
+* Como podemos ver por la cantidad de viajes por rango de precio de 0-100, se mantiene en promedio de 460 en todo los rangos, por lo cual se concluye que todas las tarifas son aceptables ya que mantienen un flujo casi constante.
+```{r,  cache = TRUE, echo = TRUE}
+e1 <- filter(data, Q > 0, Q <= 100 )
+nrow(e1)
+e2 <- filter(data, Q > 100, Q <= 200 )
+nrow(e2)
+e3 <- filter(data, Q > 200, Q <= 300 )
+nrow(e3)
+e4 <- filter(data, Q > 300, Q <= 400 )
+nrow(e4)
+e5 <- filter(data, Q > 400, Q <= 500 )
+nrow(e5)
+e6 <- filter(data , CREDITO == 30)
+Devolucion <- Clientes[7]
+DfDevolucion <- filter(data, CLIENTE == Devolucion)
+nrow(DfDevolucion)
+summary(DfDevolucion)
+## Se llego a devolver hasta 1985.0 en cantidad un precio de 496.2 Luis Jaime Urbano Piloto con mas entrega 22 en total.
+```
+
 ## ¿Nos están robando los pilotos?
 * No, no estan robando, esto se comprobo sacando el precio por Unidad buscando si en algun caso este variaba se comprobo que no vario.
 
