@@ -93,6 +93,21 @@ Extra: ¿Cuántos posibles exámenes de 5 preguntas se pueden realizar
 utilizando como banco las diez acá presentadas? (responder con código de
 R.)
 
+``` r
+library(gtools)
+N <- 10  # Número de elementos
+n <- 5 # grupos de 5
+ 
+preguntas <- c(1:N) # Son los alumnos con id un número consecutivo
+
+combinaciones <- combinations(N, n, preguntas)
+length(combinaciones)
+```
+
+    ## [1] 1260
+
+### 1260 Combanaciones distintas Importando el orden
+
 ## Sección II Preguntas prácticas.
 
   - Conteste las siguientes preguntas utilizando sus conocimientos de R.
