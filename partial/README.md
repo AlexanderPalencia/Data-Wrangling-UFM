@@ -44,11 +44,13 @@ paste0("Mis preguntas a resolver son: ",paste0(preguntas,collapse = ", "))
     `dplyr`:
       - `str()` –\> Se pueden usar la funcion summarise\_all de dplyr
         dentro de esta se le pude pasar la funcion
+        summarise\_all(n\_distinct)
       - `df[,c("a","b")]` –\> estamos seleccionando las columnas por lo
-        que podemos utilizar la funcion Select de dplyr select(df)
+        que podemos utilizar la funcion Select de df %\>%
+        dplyr::select(a,b)
       - `names(df)[4] <- "new_name"` donde la posición 4 corresponde a
         la variable `old_name` –\> Podemos utilizar la funcion rename
-        para renombrar la tabla
+        para renombrar la tabla rename(df, ‘old\_name’ = ‘new\_name’)
       - `df[df$variable == "valor",]` Podemos utilizar la funcion filter
         filter(df, variable == “valor”)
 2.  
