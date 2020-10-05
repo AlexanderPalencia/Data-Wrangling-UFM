@@ -1,0 +1,26 @@
+cada linea es un reccorrido distinto
+el ID es el poste al que se le fue el mantenimiento
+Camio
+Cod verificacion
+origen de donde sale el pickup con su lat y long
+la factura es cuanto esoty cobrnado yo 
+
+costo directo y costo fijo
+fijo es todo lo que depende del recorrido, todo lo que hay que pagarlo sin importar el viaje
+el costo directo depende del recorrido
+
+30'May es de 5 a 30 rango
+cuanto se tarda el mantenimiento 
+el ID es unico?? estan traqueando bien? 
+revisar que sea la suma 
+
+se puede trabajar en ambos R o python
+
+como cobrar
+costos directos se tienen que diferenciar
+no podemos decir que un trayecto tiene
+cuanto me cuesta mover el camion costo fijo no depende del trayecto, el señor de la garita independientemete tengo que pagar
+el costo directo con el producto o servicio en ralacion al proyecto o dependiendo por el trayecto es costo directo al trasporte es mas barato 5k en gasolina que 10 en base a esto se crean tarifarios
+height la altura del
+
+el supuesto es que hacen mantenimiento y revisiones factura lo que cobran
