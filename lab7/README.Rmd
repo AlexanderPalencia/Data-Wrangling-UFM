@@ -1,0 +1,454 @@
+---
+title: "Documentación Lab 7"
+author: "Alexander Palencia 20160391"
+date: "10/11/2020"
+output: github_document
+---
+# Lab 7 Análisis Inversiones en Energía, S.A
+
+#### El siguiente reporte refleja el estado de la empresa Inversiones en Energía, S.A en el año 2017, el objetivo del siguiente reporte es analisis el exito del año 2017 para aplicarlos en años futuros. Esto se debe a que en el año 2018 existio un decremento del 25% en relación a su utilidad bruta, la meta es lograr aumentar en un 10% su utilidad neta respecto al 2018.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+library(reshape2)
+library(rapportools)
+library("writexl")
+library(ggplot2)
+```
+
+### Limpieza de datos 
+
+Se tranformo la data a formato Tidy para que su manipulación e información fuera más sencilla de utilizar y manipular. En los comentarios del siguite código se puede contemplar el proceso de tranformación y limpieza de los datos. Una vez en formato Tidy se procede a hacer un ánalisis de esta.
+```{r}
+data <- read.csv(file = "D:/Documents/Semestres UFM/2020/Segundo semestre/Data Wrangling/Data-Wrangling-UFM/lab7/c1.csv", header = TRUE)
+preuba_data <- read.csv(file = "./c1.csv", header = TRUE)
+## Erase null columns
+data$X.1 <- NULL
+data$X.2 <- NULL
+data$X.3 <- NULL
+data$X.4 <- NULL
+data$X.5 <- NULL
+data$X <- NULL
+
+# Data cleaning numeric columns 
+numeric_col <- c("Camion_5", "Pickup", "Moto", "factura", "directoCamion_5", "directoPickup", "directoMoto", "fijoCamion_5", "fijoPickup", "fijoMoto")
+# dealing with null values
+data[numeric_col] <- lapply(data[numeric_col], function(x) ifelse(x == " Q-   ", NA, x))
+# elimination of the Q symbol
+data[numeric_col] <- lapply(data[numeric_col], function(x) gsub("Q", '', x))
+# transforming a number
+data[numeric_col] <- lapply(data[numeric_col], function(x) as.numeric(x))
+
+# Data cleaning time columns 
+time_col <- c('X5.30', 'X30.45', 'X45.75', 'X75.120', 'X120.')
+# dealing with null values
+data[time_col] <- lapply(data[time_col], function(x) ifelse(is.empty(x), NA, TRUE))
+
+
+# Converting data to tidy mode time (duration variable)
+time_tidyData <- melt(data = data, id.vars = c("Fecha", "ID", "Camion_5", "Pickup","Moto","Cod","origen", "Lat","Long", "factura","directoCamion_5","directoPickup", "directoMoto", "fijoCamion_5", "fijoPickup", "fijoMoto", "height")) %>% drop_na(value) 
+names(time_tidyData)[names(time_tidyData) == 'variable'] <- 'time_duration'
+time_tidyData$value <- NULL
+
+# Converting data to tidy mode costs (fixed costs)
+fijo_tidyData <- melt(data = time_tidyData, id.vars = c("Fecha", "ID", "Camion_5", "Pickup","Moto","Cod","origen", "Lat","Long", "factura","directoCamion_5","directoPickup", "directoMoto", "height", "time_duration")) %>% drop_na(value) 
+names(fijo_tidyData)[names(fijo_tidyData) == 'variable'] <- 'transporte_costo_fijo'
+names(fijo_tidyData)[names(fijo_tidyData) == 'value'] <- 'costo_fijo_cantidad'
+
+# Converting data to tidy mode costs (direct costs)
+directo_tidyData <- melt(data = fijo_tidyData, id.vars = c("Fecha", "ID", "Camion_5", "Pickup","Moto","Cod","origen", "Lat","Long", "factura", "height", "time_duration", "transporte_costo_fijo", "costo_fijo_cantidad")) %>% drop_na(value) 
+names(directo_tidyData)[names(directo_tidyData) == 'variable'] <- 'transporte_costo_directo'
+names(directo_tidyData)[names(directo_tidyData) == 'value'] <- 'costo_directo_cantidad'
+
+# Converting data to tidy mode cost total Transport (direct costs + fixed cost)
+tidyData <- melt(data = directo_tidyData, id.vars = c("Fecha", "ID", "Cod","origen", "Lat","Long", "factura", "height", "time_duration", "transporte_costo_fijo", "costo_fijo_cantidad", "transporte_costo_directo", "costo_directo_cantidad")) %>% drop_na(value) 
+names(tidyData)[names(tidyData) == 'variable'] <- 'transporte_utilizado'
+names(tidyData)[names(tidyData) == 'value'] <- 'costo_total'
+
+# Round to 2 decimals numeric columns
+data[numeric_col] <- lapply(data[numeric_col], function(x) format(round(x, 2), nsmall = 2))
+
+# Adding costos columns (direct costs + fixed cost)
+tidyData$costos <- tidyData$costo_directo_cantidad + tidyData$costo_fijo_cantidad
+
+# validation of total cost is correct
+tidyData$resta <- tidyData$costo_total - tidyData$costos
+tidyData$resta <- format(round(tidyData$resta, 2), nsmall = 2)
+tidyData$resta <- lapply(tidyData$resta, function(x) as.numeric(x))
+tidyData$validacion_costos <- ifelse(tidyData$resta == 0.00, TRUE, FALSE)
+
+# Converting to valid date format
+tidyData$Fecha <- parse_date_time(tidyData$Fecha,orders="dmy")
+
+# adding profit column
+tidyData$ganancias <- tidyData$factura - tidyData$costo_total
+```
+
+#### Dataset final formato Tidy
+```{r}
+head(tidyData)
+```
+
+### Datos Importantes antes del análisis
+* Existen 10 distintos servicios en el año 2017.
+* 4 distintas sedes.
+* 4 distintos transportes motos, pickup y camion
+* Se le dieron mantenimiento a 74239 postes distintos en el año 2017
+* Existe una inconsitencia de 0.25 centavos en los costos es decir que la suma de los costos no da la suma de los costos totales esta variaciones son de un centevo.
+```{r}
+# No existen servicios que reporten perdidas
+nrow(filter(tidyData, ganancias < 0))
+
+# Existen 10 distintos servicios que se dieron en el año 2017
+servicios <- unique(tidyData$Cod)
+servicios
+length(servicios)
+
+# Existen 4 distintas sedes en el año 2017
+sedes <- unique(tidyData$origen)
+sedes
+length(sedes)
+
+# Se le dieron mantenimiento a 74239 postes distintos en el año 2017
+n_postes <- length(unique(tidyData$ID))
+
+# Existe una inconsitencia de 0.25 centavos en los costos es decir que la suma de los costos no da la suma de los costos totales esta variaciones son de un centevo
+a <- sum(tidyData$costo_total)
+sprintf("%f", a)
+
+b <- sum(tidyData$costos)
+sprintf("%f", b)
+
+```
+
+### Rangos de precios
+* Nuestros precios oscilan en un rango de 7.3 - 521.67 el mas caro fue un CAMBIO_FUSIBLE con camion mientras el menor.
+* Nuestros costos oscilan en un rango de 0.96 - 467.93 el mayor es de REVISION_TRANSFORMADOR con camion y el menor es de CAMBIO_FUSIBLE.
+* Nuestras ganancias oscilan de 5 - 100, no existen ganancias mayores a 100 ni menores a 5.
+```{r}
+# Nuestros precios oscilan en un rango de 7.3 - 521.67 el mas caro fue un CAMBIO_FUSIBLE con camion mientras el menor
+filter(tidyData, factura == max(tidyData$factura))
+filter(tidyData, factura == min(tidyData$factura))
+
+# Nuestros costos oscilan en un rango de 0.96 - 467.93 el mayor es de REVISION_TRANSFORMADOR con camion y el menor es de CAMBIO_FUSIBLE
+filter(tidyData, costo_total == max(tidyData$costo_total))
+filter(tidyData, costo_total == min(tidyData$costo_total))
+
+# Nuestras ganancias oscilan de 5 - 100, no existen ganancias mayores a 100 que interesante ni menores a 5
+max(tidyData$ganancias)
+min(tidyData$ganancias)
+```
+### Estado de resultados general 2017
+```{r}
+costos_totales <- sum(tidyData$costo_total)
+ingresos_totales <- sum(tidyData$factura)
+utilidad_bruta <- ingresos_totales - costos_totales
+sprintf("Costos totales %f", costos_totales)
+sprintf("Ingresos totales %f", ingresos_totales)
+sprintf("Utilidad bruta %f", utilidad_bruta)
+
+round_col <- c('costo', 'ingreso', 'ganancias', 'rentabilidad', 'promedio_costos', 'promedio_ingresos', 'promedio_ganacia')
+```
+### Datos agrupados por mes
+El mes que mas ganancia tuvo fue Julio con 733,610 pero el que más servicios tiene es octubre, como se puede ver la rentabilidad es practicamente constante en todos los meses por lo que se puede concluir que los precios y tarifas son aceptables por el cliente.
+```{r}
+# agrupacion por mes
+monts_data <- tidyData %>% 
+  group_by(month(Fecha))
+
+# tabla por mes
+df_month <- monts_data  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_month[round_col] <- lapply(df_month[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_month, './df_month.xlsx')
+
+df_month
+
+```
+
+### Datos agrupados por poste
+El poste con más ingresos es el 863979 con ganancias de 14,799.00, el poste con más servicios es el 477971.
+```{r}
+# Agrupacion por poste
+id_data <- tidyData %>% 
+  group_by(ID)
+
+# Cantidad de servicio a poste
+df_poste <- id_data  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_poste[round_col] <- lapply(df_poste[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_poste, './df_poste.xlsx')
+
+df_poste
+```
+### Postes mas rentables
+```{r}
+# Postes mas rentables
+rentabilidad_postes <- df_poste %>% arrange(desc(rentabilidad))
+write_xlsx(rentabilidad_postes, './rentabilidad_df_poste.xlsx')
+rentabilidad_postes
+```
+
+
+### Ley de pareto
+#### Ley de Pareto el 20% de mis clientes (postes) representa el 54.39% de mis ganancias
+```{r}
+df_poste['ganancias'] <- lapply(df_poste['ganancias'], function(x) as.numeric(x))
+ganancia_20p_cliente <- sum(df_poste[1:14848,]$ganancias)
+porcentaje_ganancia <- (ganancia_20p_cliente * 100)/utilidad_bruta
+sprintf("Porcentaje %f", porcentaje_ganancia)
+```
+
+
+### Datos agrupados por sedes
+Existen dos distribuidoras que tienen mucha demanda y cuentan con los mayores ingresos pero podemos ver que la rentabilidad de todas las sedes son muy parecidas.
+```{r}
+# Agrupacion por origen
+origen_data <- tidyData %>% 
+  group_by(origen)
+
+# Cantidad de servicio por origen
+df_origen <- origen_data  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+
+df_origen[round_col] <- lapply(df_origen[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_poste, './df_origen.xlsx')
+
+df_origen
+```
+
+
+
+### Datos agrupados por Servicios
+El servicio con más ganancias es el de revisión sin embargo podemos notar que no es el más rentabe.
+```{r}
+cod_data <- tidyData %>% 
+  group_by(Cod)
+
+# Cantidad de servicio por cod
+df_cod <- cod_data  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+
+df_cod[round_col] <- lapply(df_cod[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_cod, './df_cod.xlsx')
+
+# Rentabilidad de servicios
+rentabilidad_cod <- df_cod %>% arrange(desc(rentabilidad))
+write_xlsx(rentabilidad_cod, './rentabilidad_sevicios.xlsx')
+
+df_cod
+```
+### Servicios más rentables
+```{r}
+rentabilidad_cod['rentabilidad'] <- lapply(rentabilidad_cod['rentabilidad'], function(x) as.numeric(x))
+
+rentabilidad_cod
+#Grafica rentabilidad por transporte
+barplot(rentabilidad_cod$rentabilidad, names.arg = rentabilidad_cod$Cod   , main="Rentabilidad por servicio", cex.names = 0.7)
+
+```
+
+
+
+
+### Datos agrupados por por Transporte utilizado
+El transporte más utilzado para los servicios fue el Pickup
+```{r}
+transporte_data <- tidyData %>% 
+  group_by(transporte_utilizado)
+
+# Cantidad de Transportes
+df_transporte <- transporte_data  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_transporte[round_col] <- lapply(df_transporte[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_transporte, './df_transporte.xlsx')
+
+# Rentabilidad de transporte
+rentabilidad_transporte <- df_transporte %>% arrange(desc(rentabilidad))
+write_xlsx(rentabilidad_transporte, './rentabilidad_transporte.xlsx')
+
+df_transporte
+
+```
+
+### Transporte más rentable
+```{r}
+rentabilidad_transporte['rentabilidad'] <- lapply(rentabilidad_transporte['rentabilidad'], function(x) as.numeric(x))
+#Grafica rentabilidad por transporte
+barplot(rentabilidad_transporte$rentabilidad, names.arg = rentabilidad_transporte$transporte_utilizado  , main="Rentabilidad por transporte", cex.names = 0.7)
+```
+
+
+
+### Datos agrupados por por Transporte utilizado y servicio realizado
+las motos son las más rentables y las menos usadas solo se utilizan para el servicio de cambio de fusible por lo para disminuir costos se deberian utilizar en visitas u otro servicio que no requiera llevar un camion o pickup.
+```{r}
+# Agrupacion por Transporte y servicio
+transporte_servicio <- tidyData %>% 
+  group_by(transporte_utilizado, Cod)
+
+# Cantidad de transporte servicio
+df_transporte_servicio <- transporte_servicio  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_transporte_servicio[round_col] <- lapply(df_transporte_servicio[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_transporte_servicio, './df_transporte_servicio.xlsx')
+
+# Rentabilidad de transporte y servico
+rentabilidad_transporte_servicio <- df_transporte_servicio %>% arrange(desc(rentabilidad))
+write_xlsx(rentabilidad_transporte_servicio, './rentabilidad_transporte_servicio.xlsx')
+
+df_transporte
+
+rentabilidad_transporte_servicio['rentabilidad'] <- lapply(rentabilidad_transporte_servicio['rentabilidad'], function(x) as.numeric(x))
+#Grafica rentabilidad por transporte
+barplot(rentabilidad_transporte_servicio$rentabilidad, names.arg = rentabilidad_transporte_servicio$transporte_utilizado  , main="Rentabilidad por transporte", cex.names = 0.7)
+```
+
+
+### Datos agrupados por por Transporte utilizado
+El transporte más utilzado para los servicios fue el Pickup
+
+```{r}
+# Los tiempos de servicios es de 75 a 120 min y representan nuestro ingresos y ganancias sin embargo el tiempo mas rentable es el de 5 a 30 min.
+# Agrupacion por tiempo
+aaaa <- tidyData %>% 
+  group_by(time_duration)
+
+# Cantidad de servicio por tiempo
+df_tiempo <- aaaa  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_tiempo[round_col] <- lapply(df_tiempo[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_tiempo, './df_tiempo.xlsx')
+
+
+df_tiempo['rentabilidad'] <- lapply(df_tiempo['rentabilidad'], function(x) as.numeric(x))
+#Grafica rentabilidad por tiempo
+barplot(df_tiempo$rentabilidad, names.arg = df_tiempo$time_duration  , main="Efectividad de Reparaciones por servicio", cex.names = 0.7)
+```
+
+
+
+### Datos agrupados por tiempo y servicio
+Los servicios más rentables son los que tienen una duración de  5 a 30 min.
+```{r}
+sss <- tidyData %>% 
+  group_by(time_duration, Cod)
+
+# Cantidad de servicio por cod y tiempo
+df_tiempo_servicio <- sss  %>% summarise(
+  cantidad_servicios = length(ID),
+  costo = sum(costo_total),
+  ingreso = sum(factura),
+  ganancias = (sum(factura) - sum(costo_total)),
+  rentabilidad = ((ganancias/ingreso)*100),
+  promedio_costos = mean(costo_total),
+  promedio_ingresos = mean(factura),
+  promedio_ganacia = (promedio_ingresos - promedio_costos)) %>%
+  arrange(desc(ganancias))
+
+df_tiempo_servicio[round_col] <- lapply(df_tiempo_servicio[round_col], function(x) format(round(x, 2), nsmall = 2))
+
+write_xlsx(df_tiempo_servicio, './df_tiempo_servicio.xlsx')
+
+# Rentabilidad de tiempo y servicio
+rentabilidad_tiempo_servicio <- df_tiempo_servicio %>% arrange(desc(rentabilidad))
+write_xlsx(rentabilidad_tiempo_servicio, './rentabilidad_tiempo_servicio.xlsx')
+rentabilidad_tiempo_servicio
+
+```
+
+#### Utilidades por año
+```{r}
+utilidad_2018 <- utilidad_bruta - utilidad_bruta*0.25
+perdidad_2018 <- utilidad_bruta - utilidad_2018
+utilidad_2019 <- utilidad_2018 * 1.10
+sprintf("Utilidad 2018 %f", utilidad_2018)
+sprintf("Perdida respecto al 2017 %f", perdidad_2018)
+sprintf("Utilidad esperada 2019 %f", utilidad_2019)
+
+
+```
+
+
+### Conclusiones
+* Para cumplir la meta establecida para el año del 2019 se tiene que contemplar que clientes se han perdido y que se ha cambiando respecto al año 2017.
+* Las tarifas del año de 2017 son aceptables debido a que se mantine una distribución casi costante en el transcurso del año.
+* Con las tarifas actuales y los costos no existen perdidas nuestra ganancia menor es de 5 Quetzales por lo que se tiene que optar a reducir costos o aumentar la tarifa para estos servicios.
+* Nuestra ganacia nunca es mayor a 100 quetzales.
+* No se debe abrir otro centro de distribución se deberia completar distribuir la carga.
+* Los precios de los servicios si son aceptados por los clientes
+* Las motos son las mas rentables pero solo se utilizan para el servicio de cambio de fusible por lo para disminuir costos se deberian utilizar en visitas u otro servicio que no requiera llevar un camion o pickup.
+
